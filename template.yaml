@@ -14,6 +14,10 @@ Resources:
         paths:
           /companies:
             post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Function.Arn}/invocations
               responses: {}
       EndpointConfiguration: REGIONAL
       TracingEnabled: true
@@ -33,12 +37,44 @@ Resources:
         paths:
           /companies:
             get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Function.Arn}/invocations
               responses: {}
       EndpointConfiguration: REGIONAL
       TracingEnabled: true
       Cors:
         AllowHeaders: '''Authorization,Content-Type'''
         AllowOrigin: '''*'''
+  Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-Function
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: Function
+      CodeUri: src/Function
+      Handler: index.handler
+      Runtime: nodejs12.x
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+      Events:
+        ApiPOSTcompanies:
+          Type: Api
+          Properties:
+            Path: /companies
+            Method: POST
+            RestApiId: !Ref Api
+        Api2GETcompanies:
+          Type: Api
+          Properties:
+            Path: /companies
+            Method: GET
+            RestApiId: !Ref Api2
 Parameters:
   StackTagName:
     Type: String
